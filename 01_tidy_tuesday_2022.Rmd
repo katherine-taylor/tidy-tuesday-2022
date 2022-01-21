@@ -1,0 +1,35 @@
+---
+title: "Tidy Tuesday Week 2"
+author: "Katherine"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include = FALSE}
+options(tidyverse.quiet = TRUE)
+library(tidytuesdayR)
+library(tidyverse)
+library(tidymodels)
+
+bees <- tidytuesdayR::tt_load("2022-01-11")
+```
+
+```{r}
+skimr::skim(bees$colony)
+head(bees$colony)
+unique(bees$colony$months)
+```
+
+```{r}
+# colonies by state
+bees$colony |> 
+  filter(months == "January-March" & state != "United States") |>
+  mutate(year = parse_number(year)) |> 
+  group_by(state) |> 
+  slice_max(order_by = colony_n, n = 10) |> 
+  ungroup() |> 
+  ggplot(aes(x = year, y = colony_n, color = state)) + 
+  geom_line()
+```
+
