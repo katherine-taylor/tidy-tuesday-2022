@@ -1,0 +1,10 @@
+---
+title: "Tidy Tuesday - Making maps with R"
+author: "Katherine Taylor"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+```
+
