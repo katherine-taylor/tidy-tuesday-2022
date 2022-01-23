@@ -1,0 +1,111 @@
+---
+title: "Chocolate Bar Rankings"
+author: "Katherine Taylor"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(data.table)
+library(forcats)
+# install.packages("ggdist")
+library(ggdist)
+# install.packages("countrycode")
+library(countrycode)
+# devtools::install_github("EdwinTh/dutchmasters")
+library(dutchmasters)
+
+chocolate <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-01-18/chocolate.csv')
+```
+
+```{r}
+skimr::skim(chocolate)
+chocolate$ingredients
+glimpse(chocolate)
+table(chocolate$country_of_bean_origin)
+```
+
+```{r}
+# countries with the most chocolate rated
+top_5_ratings <- chocolate |> 
+  select(country_of_bean_origin) |> 
+  rename(country = country_of_bean_origin) |> 
+  group_by(country) |> 
+  summarise(entries = n()) |> 
+  arrange(-entries) |> 
+  slice_head(n = 5) |> 
+  inner_join(chocolate, by = c("country" = "country_of_bean_origin")) |> 
+  select(country, rating)
+
+# by continent
+continents <- countrycode(chocolate$country_of_bean_origin, origin = "country.name",
+                          destination = "continent")
+unique(continents)
+
+ratings_by_continent <- chocolate |>
+  bind_cols(continents) |>
+  rename(country = country_of_bean_origin) |>
+  mutate(
+    continent = case_when(
+      country == "Blend" ~ "Blend",
+      country == "Principe" ~ "Africa",
+      country == "Sulawesi" ~ "Asia",
+      country == "Sumatra" ~ "Asia",
+      TRUE ~ continents
+    ),
+    continent = factor(
+      continent,
+      levels = c("Blend", "Africa", "Americas", "Asia", "Oceania")
+    )
+  ) |>
+  select(continent, rating)
+```
+
+
+```{r}
+top_5_ratings |> 
+  ggplot(aes(x = country, y = rating)) +
+  stat_halfeye(
+    # adjust
+    adjust = 0.8,
+    width = 0.6,
+    justification = -0.2,
+    .width = 0,
+    point_color = NA
+  ) +
+  geom_boxplot(
+    width = 0.12,
+    outlier.color = NA
+  ) +
+  coord_cartesian(xlim = c(1.2, NA)) +
+  theme_classic()
+```
+
+
+```{r}
+ratings_by_continent |> 
+  ggplot(aes(x = continent, y = rating, fill = continent)) +
+  stat_halfeye(
+    # adjust
+    adjust = 1,
+    width = 0.6,
+    justification = -0.2,
+    .width = 0,
+    point_color = NA
+  ) +
+  geom_boxplot(
+    width = 0.12,
+    outlier.color = NA
+  ) +
+  coord_cartesian(xlim = c(1.2, NA)) +
+  theme_classic() +
+  theme(legend.position = "none",
+        title = element_text(family = "Menlo")) +
+  labs(title = "Which continent has the most consistent chocolate?", subtitle = "Chocolate rating distribution by continent", caption = "Data from Flavors of Cacao", x = "Continent", y = "Rating") +
+  scale_fill_manual(values = c(dutchmasters_pal(palette = "milkmaid")(5)))
+
+ggsave(here::here("figures/01_week_03_2022.png"))
+```
+
